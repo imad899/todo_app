@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My To-Do List</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
+    .header { position: relative; padding: 20px 0; }
+    .logout { position: absolute; top: 20px; right: 0; background: #d32f2f; color: #fff; border: none; border-radius: 4px; padding: 8px 16px; font-size: 14px; cursor: pointer; }
+    .logout:hover { background: #a31515; }
+    .container { max-width: 420px; margin: 0 auto 60px auto; background: #fff; padding: 30px 25px 20px 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+    h2 { text-align: center; margin-bottom: 20px; }
+    form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+    input[type="text"] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    .datetime-group { display: flex; gap: 8px; }
+    input[type="date"], input[type="time"] { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    button[type="submit"] { width: 100%; padding: 10px; background: #1976d2; color: #fff; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+    button[type="submit"]:hover { background: #125ea8; }
+    ul { list-style: none; padding: 0; }
+    li { background: #f1f1f1; margin-bottom: 10px; padding: 12px 10px; border-radius: 5px; display: flex; align-items: center; justify-content: space-between; }
+    .task-title { flex: 1; margin-right: 10px; }
+    .completed { text-decoration: line-through; color: #888; }
+    .actions button { margin-left: 6px; background: #eee; color: #333; border: none; border-radius: 3px; padding: 4px 8px; font-size: 13px; cursor: pointer; }
+    .actions button:hover { background: #d1d1d1; }
+    .msg { text-align: center; margin-bottom: 10px; color: #d32f2f; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <button class="logout" id="logoutBtn">Logout</button>
+      <h2>My To-Do List</h2>
+      <div id="msg" class="msg"></div>
+      <form id="taskForm">
+        <input type="text" id="title" placeholder="Add a new task..." required>
+        <div class="datetime-group">
+          <input type="date" id="dueDate">
+          <input type="time" id="dueTime" value="08:00">
+        </div>
+        <button type="submit">Add Task</button>
+      </form>
+      <ul id="taskList"></ul>
+    </div>
+  </div>
+  <script>
+    // Redirect to login if not logged in
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = 'login.html';
+    }
+
+    // Set default date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('dueDate').value = tomorrow.toISOString().split('T')[0];
+
+    const apiUrl = '/api/tasks';
+    const taskList = document.getElementById('taskList');
+    const taskForm = document.getElementById('taskForm');
+    const msgDiv = document.getElementById('msg');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Logout
+    logoutBtn.onclick = function() {
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
+    };
+
+    // Fetch and display tasks
+    async function loadTasks() {
+      taskList.innerHTML = '';
+      msgDiv.textContent = '';
+      try {
+        const res = await fetch(apiUrl, {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) throw new Error('Failed to fetch tasks');
+        const tasks = await res.json();
+        if (tasks.length === 0) {
+          taskList.innerHTML = '<li style="text-align:center;color:#888;">No tasks yet.</li>';
+        } else {
+          tasks.forEach(task => {
+            const li = document.createElement('li');
+            const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+            const dateStr = dueDate ? dueDate.toLocaleDateString() : '';
+            const timeStr = dueDate ? dueDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+            const datetimeStr = dueDate ? ` (${dateStr} at ${timeStr})` : '';
+            
+            li.innerHTML = `
+              <span class="task-title${task.completed ? ' completed' : ''}">${task.title}${datetimeStr ? '<small style="color:#888;">' + datetimeStr + '</small>' : ''}</span>
+              <div class="actions">
+                <button onclick="editTask('${task._id}', '${task.title.replace(/'/g, "&#39;")}', '${task.dueDate ? task.dueDate : ''}')">Edit</button>
+                <button onclick="toggleComplete('${task._id}', ${!task.completed})">${task.completed ? 'Undo' : 'Done'}</button>
+                <button onclick="deleteTask('${task._id}')">Delete</button>
+              </div>
+            `;
+            taskList.appendChild(li);
+          });
+        }
+      } catch (err) {
+        msgDiv.textContent = 'Could not load tasks.';
+      }
+    }
+
+    // Add new task
+    taskForm.onsubmit = async function(e) {
+      e.preventDefault();
+      const title = document.getElementById('title').value.trim();
+      const dueDate = document.getElementById('dueDate').value;
+      const dueTime = document.getElementById('dueTime').value;
+      
+      if (!title) return;
+      
+      let dueDateTime = null;
+      if (dueDate && dueTime) {
+        dueDateTime = new Date(dueDate + 'T' + dueTime).toISOString();
+      }
+      
+      try {
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ title, dueDate: dueDateTime })
+        });
+        if (!res.ok) throw new Error('Failed to add task');
+        taskForm.reset();
+        // Reset default values
+        document.getElementById('dueDate').value = tomorrow.toISOString().split('T')[0];
+        document.getElementById('dueTime').value = '08:00';
+        loadTasks();
+      } catch (err) {
+        msgDiv.textContent = 'Could not add task.';
+      }
+    };
+
+    // Edit task
+    window.editTask = function(id, oldTitle, oldDueDate) {
+      const newTitle = prompt('Edit task title:', oldTitle);
+      if (newTitle === null) return;
+      
+      let newDueDate = null;
+      if (oldDueDate) {
+        const currentDate = new Date(oldDueDate);
+        const dateStr = currentDate.toISOString().split('T')[0];
+        const timeStr = currentDate.toTimeString().slice(0, 5);
+        
+        const newDateInput = prompt('Edit due date (YYYY-MM-DD):', dateStr);
+        if (newDateInput === null) return;
+        
+        const newTimeInput = prompt('Edit due time (HH:MM):', timeStr);
+        if (newTimeInput === null) return;
+        
+        if (newDateInput && newTimeInput) {
+          newDueDate = new Date(newDateInput + 'T' + newTimeInput).toISOString();
+        }
+      } else {
+        const newDateInput = prompt('Add due date (YYYY-MM-DD):', '');
+        if (newDateInput === null) return;
+        
+        const newTimeInput = prompt('Add due time (HH:MM):', '08:00');
+        if (newTimeInput === null) return;
+        
+        if (newDateInput && newTimeInput) {
+          newDueDate = new Date(newDateInput + 'T' + newTimeInput).toISOString();
+        }
+      }
+      
+      fetch(apiUrl + '/' + id, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ title: newTitle, dueDate: newDueDate })
+      }).then(loadTasks).catch(() => { msgDiv.textContent = 'Could not update task.'; });
+    };
+
+    // Toggle complete
+    window.toggleComplete = function(id, completed) {
+      fetch(apiUrl + '/' + id, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ completed })
+      }).then(loadTasks).catch(() => { msgDiv.textContent = 'Could not update task.'; });
+    };
+
+    // Delete task
+    window.deleteTask = function(id) {
+      if (!confirm('Delete this task?')) return;
+      fetch(apiUrl + '/' + id, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      }).then(loadTasks).catch(() => { msgDiv.textContent = 'Could not delete task.'; });
+    };
+
+    loadTasks();
+  </script>
+</body>
+</html>
