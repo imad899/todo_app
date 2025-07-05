@@ -1,0 +1,151 @@
+
+body {
+  font-family: Arial, sans-serif;
+  background: #f7f7f7;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 420px;
+  margin: 60px auto;
+  background: #fff;
+  padding: 30px 25px 20px 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background: #125ea8;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+li {
+  background: #f1f1f1;
+  margin-bottom: 10px;
+  padding: 12px 10px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.task-title {
+  flex: 1;
+  margin-right: 10px;
+}
+
+.completed {
+  text-decoration: line-through;
+  color: #888;
+}
+
+.actions button {
+  margin-left: 6px;
+  background: #eee;
+  color: #333;
+  border: none;
+  border-radius: 3px;
+  padding: 4px 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.actions button:hover {
+  background: #d1d1d1;
+}
+
+.logout {
+  float: right;
+  background: #d32f2f;
+  color: #fff;
+  margin-top: -10px;
+  width: auto;
+  padding: 8px 16px;
+  font-size: 15px;
+}
+
+.logout:hover {
+  background: #a31515;
+}
+
+.msg {
+  text-align: center;
+  margin-bottom: 10px;
+  color: #d32f2f;
+  font-size: 15px;
+}
+
+.link {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.link a {
+  color: #1976d2;
+  text-decoration: none;
+  transition: text-decoration 0.2s;
+}
+
+.link a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive design for mobile */
+@media (max-width: 500px) {
+  .container {
+    max-width: 98vw;
+    padding: 18px 6px 12px 6px;
+  }
+  button, .logout {
+    font-size: 15px;
+    padding: 8px;
+  }
+  h2 {
+    font-size: 22px;
+  }
+}
